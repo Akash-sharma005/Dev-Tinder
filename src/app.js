@@ -1,18 +1,29 @@
-const express= require('express');
-const app =express(); 
+const express = require('express');
+const app = express();
 
-app.use("/",(req,res)=>{
-    res.send("starting ")
+app.use("/user",(req,res)=>{
+  res.send("hakhkjfhkjhkjh");
 })
 
-app.use("/test",(req,res)=>{
-    res.send("Response from test route server");
+app.get("/user", (req, res) => {
+    res.send({
+        firstName: "Akash",
+        lastName: "Sharma"
+    })
 })
 
-app.use("/hello",(req,res)=>{
-    res.send("Response from hello route server")
+app.post("/user",(req,res)=>{
+    res.send("Data fetch successfully");
 })
 
-app.listen(7777,()=>{
+app.delete("/user",(req,res)=>{
+    res.send("Deleted successfully");
+})
+
+app.use("/test", (req, res) => {
+    res.send("hello");
+})
+
+app.listen(7777, () => {
     console.log("Server is successfully running on PORT 7777..")
 });
