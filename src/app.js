@@ -1,24 +1,33 @@
 const express = require('express');
 const app = express();
-const {adminAuth, userAuth}=require("./middleware/auth")
+const connectDB = require("./config/database")
+const User = require("./models/user")
 
-app.use("/admin",adminAuth)
+app.post("/signup", async (req, res) => {
+    //Create a new instance of the user model
+    const user = new User({
+        firstName: "Virat",
+        lastName: "Kohli",
+        emailId: "Viratladwa64@gmail.com",
+        password: "Virat@1233"
+    })
 
-app.use("/user",userAuth,(req,res)=>{
-    res.send("User Data send")
+    try {
+        await user.save();
+        res.send("User Added successfully!")
+    }
+    catch (err) {
+        res.status(400).send("Error in saving the user.." + err.message)
+    }
+
 })
 
-app.get("/admin/getAllData",(req,res)=>{
-    res.send("All Data Sent")
-}) 
-
-app.get("admin/deletedUser",(req,res)=>{
-   res.send("Deleted a USer")
-})
-
-app.listen(7777, () => {
-    console.log("Server is successfully running on PORT 7777..")
-});
-
-//Handling the route user 2
-//handling the route user
+connectDB().
+    then(() => {
+        console.log("Database connection establish..")
+        app.listen(7777, () => {
+            console.log("Server is successfully listen on PORT 7777")
+        })
+    }).catch((err) => {
+        console.error("Database cannot be connected")
+    })
