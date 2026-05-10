@@ -3,14 +3,11 @@ const app = express();
 const connectDB = require("./config/database")
 const User = require("./models/user")
 
+app.use(express.json())
+
 app.post("/signup", async (req, res) => {
     //Create a new instance of the user model
-    const user = new User({
-        firstName: "Virat",
-        lastName: "Kohli",
-        emailId: "Viratladwa64@gmail.com",
-        password: "Virat@1233"
-    })
+    const user = new User(req.body)
 
     try {
         await user.save();
@@ -19,7 +16,8 @@ app.post("/signup", async (req, res) => {
     catch (err) {
         res.status(400).send("Error in saving the user.." + err.message)
     }
-
+    // console.log(req.body)
+    
 })
 
 connectDB().
@@ -29,5 +27,6 @@ connectDB().
             console.log("Server is successfully listen on PORT 7777")
         })
     }).catch((err) => {
-        console.error("Database cannot be connected")
+        console.error("Database cannot be connected" + err)
     })
+
