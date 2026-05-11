@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const validator= require('validator')
+
 const { Schema } = mongoose;
 
 const userSchema = new Schema({
@@ -16,11 +18,21 @@ const userSchema = new Schema({
         required: true,
         unique: true,
         lowercase: true,
-        trim: true
+        trim: true,
+        validate(value){
+            if(!validator.isEmail(value)){
+               throw new Error("Invalid Email Address : "+ value)
+            }
+        }
     },
     password: {
         type: String,
-        required: true
+        required: true,
+        validate(value){
+            if(!validator.isStrongPassword(value)){
+               throw new Error("Enter a Strong Password : "+ value)
+            }
+        }
     },
     age: {
         type: Number,
@@ -36,7 +48,12 @@ const userSchema = new Schema({
     },
     photoUrl: {
         type: String,
-        default: "https://www.abasynisb.edu.pk/storage/faculty/284_1767159123.jpg"
+        default: "https://www.abasynisb.edu.pk/storage/faculty/284_1767159123.jpg",
+        validate(value){
+            if(!validator.isURL(value)){
+                throw new Error("Invalid Photo URL Address : " + value)
+            }
+        }
     },
     about: {
         type: String,
