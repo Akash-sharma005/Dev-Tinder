@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
-const validator= require('validator')
+const validator = require('validator')
+const bcrypt= require('bcrypt')
+const jwt= require('jsonwebtoken')
 
 const { Schema } = mongoose;
 
@@ -19,18 +21,18 @@ const userSchema = new Schema({
         unique: true,
         lowercase: true,
         trim: true,
-        validate(value){
-            if(!validator.isEmail(value)){
-               throw new Error("Invalid Email Address : "+ value)
+        validate(value) {
+            if (!validator.isEmail(value)) {
+                throw new Error("Invalid Email Address : " + value)
             }
         }
     },
     password: {
         type: String,
         required: true,
-        validate(value){
-            if(!validator.isStrongPassword(value)){
-               throw new Error("Enter a Strong Password : "+ value)
+        validate(value) {
+            if (!validator.isStrongPassword(value)) {
+                throw new Error("Enter a Strong Password : " + value)
             }
         }
     },
@@ -49,8 +51,8 @@ const userSchema = new Schema({
     photoUrl: {
         type: String,
         default: "https://www.abasynisb.edu.pk/storage/faculty/284_1767159123.jpg",
-        validate(value){
-            if(!validator.isURL(value)){
+        validate(value) {
+            if (!validator.isURL(value)) {
                 throw new Error("Invalid Photo URL Address : " + value)
             }
         }
@@ -62,6 +64,21 @@ const userSchema = new Schema({
     skills: {
         type: [String]
     }
-},{timestamps:true})
+}, { timestamps: true })
+
+userSchema.methods.getJWT = async function () {
+    const user =this //It is referring to the particular instances 
+
+    const token = await jwt.sign({ _id: user._id }, "DEV@TINDER$970", { expiresIn: "7d" })
+
+    return token;
+}
+userSchema.methods.validatePassword= async function(passwordInputByUser){
+    const user= this;
+    const passwordHash= user.password
+
+    const isValidPassword= await bcrypt.compare(passwordInputByUser,passwordHash);
+    return isValidPassword;
+}
 
 module.exports = mongoose.model("User", userSchema);
