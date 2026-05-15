@@ -1,16 +1,37 @@
 const express = require('express');
-const {userAuth}  = require('../middleware/auth');
+const { userAuth } = require('../middleware/auth');
 const profileRouter = express.Router();
 const bcrypt = require('bcrypt');
+const { validateEditProfileData } = require('../utils/validation');
+const User = require("../models/user")
 
-
-profileRouter.get("/profile", userAuth, async (req, res) => {
+profileRouter.get("/profile/view", userAuth, async (req, res) => {
     try {
         const user = req.user;
         res.send(user);
-    }catch(err){
+    } catch (err) {
         res.status(401).send("ERROR : " + err.message)
     }
 })
 
-module.exports= profileRouter
+profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
+    try {
+        if (!validateEditProfileData(req)) {
+            throw new Error("Invalid Edit request");
+        }
+        const loggedInUser = req.user;
+
+        Object.keys(req.body).forEach(key => loggedInUser[key] = req.body[key])
+        await loggedInUser.save()
+
+        res.send( {
+            message:loggedInUser.firstName + " your profile updated successfully..",
+            data:loggedInUser
+        })
+
+    } catch (err) {
+        res.status(401).send("ERROR : " + err.message);
+    }
+})
+
+module.exports = profileRouter
