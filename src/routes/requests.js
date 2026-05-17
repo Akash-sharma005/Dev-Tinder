@@ -1,17 +1,55 @@
-const express= require('express')
-const requestRouter= express.Router();
+const express = require('express')
+const requestRouter = express.Router();
 const { userAuth } = require('../middleware/auth');
+const ConnectionRequest = require("../models/connectionRequest");
+const User = require("../models/user")
 
-requestRouter.post("/sendConnectionRequest", userAuth, async (req, res) => {
+requestRouter.post("/request/send/:status/:toUserid", userAuth, async (req, res) => {
     try {
-        const user = req.user;
+        const fromUserId = req.user._id;
+        const toUserId = req.params.toUserid;
+        const status = req.params.status;
+        const allowedStatus = ["ignored", "interested"];
 
-        //sending a connection request
-        console.log("Sending a connection request");
+        if (!allowedStatus.includes(status)) {
+            return res.send({
+                message: "Invalid status type: " + status
+            })
+        }
+        const toUser = await User.findById(toUserId);
 
-        res.send(user.firstName + " sent the connection request");
+        if (!toUser) {
+            return res.status(404).send({ message: "User not found" })
+        }
+
+        // If there is an existing Connection Request
+        const existingConnectionRequest = await ConnectionRequest.findOne({
+            $or: [
+                { fromUserId, toUserId },
+                { fromUserId: toUserId, toUserId: fromUserId }
+            ]
+        })
+        if (existingConnectionRequest) {
+            return res.status(401).send({
+                message: "Connection request already exists!!",
+            })
+        }
+
+        const connectionRequest = new ConnectionRequest(
+            {
+                fromUserId,
+                toUserId,
+                status
+            }
+        );
+
+        const data = await connectionRequest.save();
+        res.send({
+            message: req.user.firstName + " is " + status + " in " + toUser.firstName,
+             data
+        })
     } catch (err) {
-        res.status(401).send("ERROR : " + err.message);
+        res.status(400).send("ERROR : " + err.message);
     }
 })
 

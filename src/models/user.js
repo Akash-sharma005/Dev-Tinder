@@ -42,10 +42,9 @@ const userSchema = new Schema({
     },
     gender: {
         type: String,
-        validate(value) {
-            if (!["male", "female", "others"].includes(value)) {
-                throw new Error('Gender data is not valid')
-            }
+        enum:{
+            values:["male", "female", "others"],
+            message: `{VALUE} is not a valid gender type`
         }
     },
     photoUrl: {
@@ -65,6 +64,10 @@ const userSchema = new Schema({
         type: [String]
     }
 }, { timestamps: true })
+
+userSchema.index({firstName:1})
+userSchema.index({gender:1})
+
 
 userSchema.methods.getJWT = async function () {
     const user =this //It is referring to the particular instances 
