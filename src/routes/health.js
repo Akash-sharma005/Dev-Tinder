@@ -9,4 +9,4 @@ healthRouter.get("/health",async(req,res)=>{
     }
 })
 
-module.exports= {healthRouter}
+module.exports= healthRouter
