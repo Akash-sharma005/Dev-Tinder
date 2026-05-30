@@ -1,15 +1,21 @@
 const express = require("express");
-const connectDB = require("./config/database");
+// const connectDB = require("./config/database");
 const app = express();
-const cookieParser = require("cookie-parser");
-const cors = require("cors");
+// const cookieParser = require("cookie-parser");
+// const cors = require("cors");
+
+const connectDB = require("./config/database")
+const bcrypt = require("bcrypt")
+const validator = require('validator')
+const cookieParser = require("cookie-parser")
+const jwt = require("jsonwebtoken");
 
 
 
-app.use(cors({
-    origin:"http://localhost:5173",
-    credentials:true
-}))
+// app.use(cors({
+//     origin:"http://localhost:5173",
+//     credentials:true
+// }))
 
 
 app.use(express.json());
