@@ -1,112 +1,94 @@
-const express = require('express')
+const express = require("express");
 const userRouter = express.Router();
-const { userAuth } = require('../middleware/auth')
-const ConnectionRequest = require("../models/connectionRequest")
-const User = require("../models/user")
-
-const USER_SAFE_DATA = "firstName lastName photoUrl age gender about skills"
 
 
+const ConnectionRequest = require("../models/connectionRequest");
+const User = require("../models/user");
+const { userAuth } = require("../middleware/auth");
+
+const USER_SAFE_DATA = "firstName lastName photoUrl age gender about skills";
+
+// Get all the pending connection request for the loggedIn user
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
-    try {
-        const loggedInUser = req.user //virat kohli
+  try {
+    const loggedInUser = req.user;
 
-        const connectionRequest = await ConnectionRequest.find({
-            toUserId: loggedInUser._id,
-            // status: "interested"
-        }).populate("fromUserId", USER_SAFE_DATA)
+    const connectionRequests = await ConnectionRequest.find({
+      toUserId: loggedInUser._id,
+      status: "interested",
+    }).populate("fromUserId", USER_SAFE_DATA);
+    // }).populate("fromUserId", ["firstName", "lastName"]);
 
-        if (connectionRequest.length === 0) {
-            return res.send({
-                message: "No requests pending.."
-            })
-        }
-        connectionRequest.forEach((req) => {
-            console.log(req.fromUserId)
-        })
+    res.json({
+      message: "Data fetched successfully",
+      data: connectionRequests,
+    });
+  } catch (err) {
+    res.status(400).send(err.message)
+  }
+});
 
-        res.send({
-            message: "Data fetched successfully",
-            data: connectionRequest
-        })
+userRouter.get("/user/connections", userAuth, async (req, res) => {
+  try {
+    const loggedInUser = req.user;
 
-    } catch (err) {
-        res.status(400).send("ERROR : " + err.message);
-    }
-})
+    const connectionRequests = await ConnectionRequest.find({
+      $or: [
+        { toUserId: loggedInUser._id, status: "accepted" },
+        { fromUserId: loggedInUser._id, status: "accepted" },
+      ],
+    })
+      .populate("fromUserId", USER_SAFE_DATA)
+      .populate("toUserId", USER_SAFE_DATA);
 
-userRouter.get("/user/requests/connections", userAuth, async (req, res) => {
-    try {
-        const loggedInUser = req.user;
+    const data = connectionRequests.map((row) => {
+      if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
+        return row.toUserId;
+      }
+      return row.fromUserId;
+    });
 
-        const connectionRequest = await ConnectionRequest.find({
-            $or: [
-                { fromUserId: loggedInUser, status: "accepted" },
-                { toUserId: loggedInUser, status: "accepted" }
-            ],
-        }).populate("fromUserId", USER_SAFE_DATA).populate("toUserId", USER_SAFE_DATA)
-
-
-        if (connectionRequest.length === 0) {
-            return res.send({
-                message: "Connection not found.."
-            })
-        }
-
-        const data = connectionRequest.map((row) => {
-            if (row.fromUserId._id.toString() === loggedInUser._id.toString()) {
-                return row.toUserId;
-            }
-            else {
-                return row.fromUserId
-            }
-        })
-
-        res.send({
-            message: "Data feteched successfully",
-            data
-        })
-
-
-    } catch (err) {
-        res.status(400).send({ message: err.message });
-    }
-})
+    res.json({ data });
+  } catch (err) {
+    res.status(400).send({ message: err.message });
+  }
+});
 
 userRouter.get("/feed", userAuth, async (req, res) => {
-    try {
-        const loggedInUser = req.user;
+  try {
+    const loggedInUser = req.user;
 
-        const page= parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const skip =(page-1)*limit
-        limit = limit > 50 ? 50 : limit
+    const page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    limit = limit > 50 ? 50 : limit;
+    const skip = (page - 1) * limit;
 
-        const connectionRequest = await ConnectionRequest.find({
-            $or: [
-                { fromUserId: loggedInUser._id },
-                { toUserId: loggedInUser._id }
-            ]
-        }).select("fromUserId , toUserId")
+    // 1. Fetch only the necessary ID fields as raw ObjectIds
+    const connectionRequests = await ConnectionRequest.find({
+      $or: [{ fromUserId: loggedInUser._id }, { toUserId: loggedInUser._id }],
+    }).select("fromUserId toUserId");
 
-        const hideUsersFromFeed = new Set();
+    // 2. Map them directly into a flat array of native ObjectIds
+    const hideUsersFromFeed = [];
+    connectionRequests.forEach((request) => {
+      if (request.fromUserId) hideUsersFromFeed.push(request.fromUserId);
+      if (request.toUserId) hideUsersFromFeed.push(request.toUserId);
+    });
 
-        connectionRequest.forEach((req) => {
-            hideUsersFromFeed.add(req.fromUserId.toString())
-            hideUsersFromFeed.add(req.toUserId.toString());
-        })
+    // 3. Add the logged-in user to the exclusion list so they don't see themselves
+    hideUsersFromFeed.push(loggedInUser._id);
 
-        const users = await User.find({
-            $and: [
-                { _id: { $nin: Array.from(hideUsersFromFeed) } },
-                { _id: { $ne: loggedInUser._id } }
-            ]
-        }).select(USER_SAFE_DATA).skip(skip).limit(limit)
+    // 4. Perform a strict ObjectId comparison query
+    const users = await User.find({
+      _id: { $nin: hideUsersFromFeed }
+    })
+      .select(USER_SAFE_DATA)
+      .skip(skip)
+      .limit(limit);
 
-        res.json({users});
-
-    } catch (err) {
-        res.send("ERROR : " + err.message);
-    }
-})
-module.exports = userRouter
+    res.json({ data: users });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+module.exports = userRouter;

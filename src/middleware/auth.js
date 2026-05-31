@@ -1,35 +1,29 @@
-const jwt = require('jsonwebtoken')
-const User= require("../models/user")
+const jwt = require("jsonwebtoken");
+const User = require("../models/user");
 
-const userAuth = async(req, res, next) => {
-    try {
-        //Read the token from the request cookies 
-        const { token } = req.cookies;
-       
-        if(!token){
-           throw new Error("Token is not valid!!!!!!!!")
-        }
+const userAuth = async (req, res, next) => {
+  try {
+    const { token } = req.cookies;
+    if (!token) {
+      return res.status(401).send("Please Login!");
+    }
 
-        //validate token
-        const decodedMsg = await jwt.verify(token, "DEV@TINDER$970");
+    const decodedObj = await jwt.verify(token, process.env.JWT_SECRET);
 
-        //find the user
-        const {_id}= decodedMsg;
-        const  user = await User.findById({_id});
+    const { _id } = decodedObj;
 
-        if(!user){
-            throw new Error("User doesn't exists");
-        }
-        req.user=user;
-        next()
+    const user = await User.findById(_id);
+    if (!user) {
+      throw new Error("User not found");
+    }
 
-    }catch(err){
-        res.status(400).send('ERROR : ' + err.message)
-    } 
-}
+    req.user = user;
+    next();
+  } catch (err) {
+    res.status(400).send("ERROR: " + err.message);
+  }
+};
 
-
-
-module.exports = { userAuth }
-
-
+module.exports = {
+  userAuth
+};

@@ -1,57 +1,38 @@
-const express = require('express');
-const { userAuth } = require('../middleware/auth');
+const express = require("express");
 const profileRouter = express.Router();
-const bcrypt = require('bcrypt');
-const { validateEditProfileData } = require('../utils/validation');
-const User = require("../models/user")
-const validator = require("validator")
+
+const { userAuth } = require("../middleware/auth");
+const { validateEditProfileData } = require("../utils/validation");
 
 profileRouter.get("/profile/view", userAuth, async (req, res) => {
-    try {
-        const user = req.user;
-        res.send(user);
-    } catch (err) {
-        res.status(401).send("ERROR : " + err.message)
-    }
-})
+  try {
+    const user = req.user;
+
+    res.send(user);
+  } catch (err) {
+    res.status(400).send("ERROR : " + err.message);
+  }
+});
 
 profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
-    try {
-        if (!validateEditProfileData(req)) {
-            throw new Error("Invalid Edit request");
-        }
-        const loggedInUser = req.user;
-
-        Object.keys(req.body).forEach(key => loggedInUser[key] = req.body[key])
-        await loggedInUser.save()
-
-        res.send({
-            message: loggedInUser.firstName + " your profile updated successfully..",
-            data: loggedInUser
-        })
-
-    } catch (err) {
-        res.status(401).send("ERROR : " + err.message);
+  try {
+    if (!validateEditProfileData(req)) {
+      throw new Error("Invalid Edit Request");
     }
-})
 
-profileRouter.patch("/profile/password", userAuth, async (req, res) => {
-    try {
-        const { password } = req.body;
-        const userId = req.user._id;
+    const loggedInUser = req.user;
 
-        if (!validator.isStrongPassword(password)) {
-            throw new Error("Please enter a strong password..");
-        }
+    Object.keys(req.body).forEach((key) => (loggedInUser[key] = req.body[key]));
 
-        const hashPassword = await bcrypt.hash(password, 10);
+    await loggedInUser.save();
 
-        const update = await User.findByIdAndUpdate(userId, { password: hashPassword })
-        res.send("Password update successfully..") 
+    res.json({
+      message: `${loggedInUser.firstName}, your profile updated successfuly`,
+      data: loggedInUser,
+    });
+  } catch (err) {
+    res.status(400).send("ERROR : " + err.message);
+  }
+});
 
-    } catch (err) {
-        res.status(401).send("ERROR : "+ err.message);
-    }
-})
-
-module.exports = profileRouter
+module.exports = profileRouter;
